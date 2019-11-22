@@ -345,7 +345,22 @@ class Zend_Session_SaveHandler_DbTable
         $rows = call_user_func_array(array(&$this, 'find'), $this->_getPrimary($id));
 
         if (count($rows)) {
-            $data[$this->_lifetimeColumn] = $this->_getLifetime($rows->current());
+            $existingRow = $rows->current();
+            $data[$this->_lifetimeColumn] = $this->_getLifetime($existingRow);
+
+            $hasChanged = false;
+            foreach ($data as $key => $value) {
+                $currentValue = (string)$existingRow[$key];
+                $newValue = (string)$value;
+                if ($currentValue !== $newValue) {
+                    $hasChanged = true;
+                    break;
+                }
+            }
+
+            if (!$hasChanged) {
+                return true;
+            }
 
             if ($this->update($data, $this->_getPrimary($id, self::PRIMARY_TYPE_WHERECLAUSE))) {
                 $return = true;
