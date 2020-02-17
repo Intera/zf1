@@ -47,6 +47,11 @@ class Zend_Controller_Action_HelperBroker
     protected $_actionController;
 
     /**
+     * @var Closure
+     */
+    protected static $_instanceCreatorCallback;
+
+    /**
      * @var Zend_Loader_PluginLoader_Interface
      */
     protected static $_pluginLoader;
@@ -57,6 +62,14 @@ class Zend_Controller_Action_HelperBroker
      * @var Zend_Controller_Action_HelperBroker_PriorityStack
      */
     protected static $_stack = null;
+
+    /**
+     * @param Closure $instanceCreatorCallback
+     */
+    public static function setInstanceCreatorCallback($instanceCreatorCallback)
+    {
+        self::$_instanceCreatorCallback = $instanceCreatorCallback;
+    }
 
     /**
      * Set PluginLoader for use with broker
@@ -369,7 +382,7 @@ class Zend_Controller_Action_HelperBroker
             throw new Zend_Controller_Action_Exception('Action Helper by name ' . $name . ' not found', 0, $e);
         }
 
-        $helper = new $class();
+        $helper = self::_createHelperInstance($class);
 
         if (!$helper instanceof Zend_Controller_Action_Helper_Abstract) {
             require_once 'Zend/Controller/Action/Exception.php';
@@ -377,5 +390,14 @@ class Zend_Controller_Action_HelperBroker
         }
 
         self::getStack()->push($helper);
+    }
+
+    protected static function _createHelperInstance($className)
+    {
+        if (self::$_instanceCreatorCallback) {
+            return call_user_func(self::$_instanceCreatorCallback, $className);
+        }
+
+        return new $className();
     }
 }
