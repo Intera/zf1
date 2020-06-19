@@ -39,6 +39,11 @@ require_once 'Zend/View/Interface.php';
 abstract class Zend_View_Abstract implements Zend_View_Interface
 {
     /**
+     * @var Closure|null
+     */
+    private static $_instanceCreatorCallback;
+
+    /**
      * Path stack for script, helper, and filter directories.
      *
      * @var array
@@ -230,6 +235,11 @@ abstract class Zend_View_Abstract implements Zend_View_Interface
         }
 
         $this->init();
+    }
+
+    public static function setInstanceCreatorCallback(?Closure $param)
+    {
+        self::$_instanceCreatorCallback = $param;
     }
 
     /**
@@ -1180,7 +1190,7 @@ abstract class Zend_View_Abstract implements Zend_View_Interface
 
         if (!isset($store[$name])) {
             $class = $this->getPluginLoader($type)->load($name);
-            $store[$name] = new $class();
+            $store[$name] = $this->_getPluginInstance($class);
             if (method_exists($store[$name], 'setView')) {
                 $store[$name]->setView($this);
             }
@@ -1188,6 +1198,15 @@ abstract class Zend_View_Abstract implements Zend_View_Interface
 
         $this->$storeVar = $store;
         return $store[$name];
+    }
+
+    private function _getPluginInstance(string $class)
+    {
+        if (self::$_instanceCreatorCallback) {
+            return call_user_func(self::$_instanceCreatorCallback, $class);
+        }
+
+        return new $class();
     }
 
     /**

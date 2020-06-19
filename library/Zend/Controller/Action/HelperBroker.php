@@ -47,7 +47,7 @@ class Zend_Controller_Action_HelperBroker
     protected $_actionController;
 
     /**
-     * @var Closure
+     * @var Closure|null
      */
     protected static $_instanceCreatorCallback;
 
@@ -63,10 +63,7 @@ class Zend_Controller_Action_HelperBroker
      */
     protected static $_stack = null;
 
-    /**
-     * @param Closure $instanceCreatorCallback
-     */
-    public static function setInstanceCreatorCallback($instanceCreatorCallback)
+    public static function setInstanceCreatorCallback(?Closure $instanceCreatorCallback)
     {
         self::$_instanceCreatorCallback = $instanceCreatorCallback;
     }
