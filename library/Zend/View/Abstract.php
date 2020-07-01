@@ -237,7 +237,7 @@ abstract class Zend_View_Abstract implements Zend_View_Interface
         $this->init();
     }
 
-    public static function setInstanceCreatorCallback(?Closure $param)
+    public static function setInstanceCreatorCallback(?Closure $param): void
     {
         self::$_instanceCreatorCallback = $param;
     }
