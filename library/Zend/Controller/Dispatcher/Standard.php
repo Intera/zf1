@@ -36,6 +36,11 @@ require_once 'Zend/Controller/Dispatcher/Abstract.php';
 class Zend_Controller_Dispatcher_Standard extends Zend_Controller_Dispatcher_Abstract
 {
     /**
+     * @var Closure|null
+     */
+    private static $_instanceCreatorCallback;
+
+    /**
      * Current dispatchable directory
      * @var string
      */
@@ -63,6 +68,11 @@ class Zend_Controller_Dispatcher_Standard extends Zend_Controller_Dispatcher_Abs
     {
         parent::__construct($params);
         $this->_curModule = $this->getDefaultModule();
+    }
+
+    public static function setInstanceCreatorCallback(?Closure $instanceCreatorCallback): void
+    {
+        self::$_instanceCreatorCallback = $instanceCreatorCallback;
     }
 
     /**
@@ -278,7 +288,7 @@ class Zend_Controller_Dispatcher_Standard extends Zend_Controller_Dispatcher_Abs
          * Instantiate controller with request, response, and invocation
          * arguments; throw exception if it's not an action controller
          */
-        $controller = new $moduleClassName($request, $this->getResponse(), $this->getParams());
+        $controller = $this->_createControllerInstance($moduleClassName, $request);
         if (!($controller instanceof Zend_Controller_Action_Interface) &&
             !($controller instanceof Zend_Controller_Action)) {
             require_once 'Zend/Controller/Dispatcher/Exception.php';
@@ -508,5 +518,25 @@ class Zend_Controller_Dispatcher_Standard extends Zend_Controller_Dispatcher_Abs
         }
 
         return $this->formatActionName($action);
+    }
+
+    /**
+     * @param string $moduleClassName
+     * @param Zend_Controller_Request_Abstract $request
+     * @return mixed
+     */
+    private function _createControllerInstance($moduleClassName, Zend_Controller_Request_Abstract $request)
+    {
+        if (self::$_instanceCreatorCallback) {
+            return call_user_func(
+                self::$_instanceCreatorCallback,
+                $moduleClassName,
+                $request,
+                $this->getResponse(),
+                $this->getParams()
+            );
+        }
+
+        return new $moduleClassName($request, $this->getResponse(), $this->getParams());
     }
 }
