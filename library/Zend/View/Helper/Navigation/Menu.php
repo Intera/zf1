@@ -499,6 +499,50 @@ class Zend_View_Helper_Navigation_Menu
     }
 
     /**
+     * @param $isActive
+     * @param string|null $activeClass
+     * @param bool $addPageClassToLi
+     * @param $page
+     * @param bool $renderParentClass
+     * @param int|null $maxDepth
+     * @param int|null $depth
+     * @param string $parentClass
+     * @return array
+     */
+    protected function _collectLiClasses(
+        $isActive,
+        ?string $activeClass,
+        bool $addPageClassToLi,
+        $page,
+        bool $renderParentClass = false,
+        ?int $maxDepth = null,
+        ?int $depth = null,
+        string $parentClass = ''
+    ): array {
+        $liClasses = [];
+
+        // Is page active?
+        if ($isActive && $activeClass) {
+            $liClasses[] = $activeClass;
+        }
+
+        // Add CSS class from page to LI?
+        if ($addPageClassToLi) {
+            $liClasses[] = $page->getClass();
+        }
+        // Add CSS class for parents to LI?
+        if ($renderParentClass && $page->hasChildren()) {
+            // Check max depth
+            if ((is_int($maxDepth) && ($depth + 1 < $maxDepth))
+                || !is_int($maxDepth)
+            ) {
+                $liClasses[] = $parentClass;
+            }
+        }
+        return $liClasses;
+    }
+
+    /**
      * Normalizes given render options
      *
      * @param  array $options  [optional] options to normalize
@@ -674,18 +718,8 @@ class Zend_View_Helper_Navigation_Menu
                 continue;
             }
 
-            $liClass = '';
-            if ($subPage->isActive(true) && $addPageClassToLi) {
-                $liClass = $this->_htmlAttribs(
-                    array('class' => $activeClass . ' ' . $subPage->getClass())
-                );
-            } else if ($subPage->isActive(true)) {
-                $liClass = $this->_htmlAttribs(array('class' => $activeClass));
-            } else if ($addPageClassToLi) {
-                $liClass = $this->_htmlAttribs(
-                    array('class' => $subPage->getClass())
-                );
-            }
+            $liClasses = $this->_collectLiClasses($subPage->isActive(true), $activeClass, $addPageClassToLi, $subPage);
+            $liClass = $this->_htmlAttribs(['class' => implode(' ', $liClasses)]);
             $html .= $indent . $innerIndent . '<li' . $liClass . '>' . $this->getEOL();
             $html .= $indent . str_repeat($innerIndent, 2) . $this->htmlify($subPage)
                                                            . $this->getEOL();
@@ -837,28 +871,19 @@ class Zend_View_Helper_Navigation_Menu
                 $html .= $myIndent . $innerIndent . '</li>' . $this->getEOL();
             }
 
-            // render li tag and page
-            $liClasses = array();
-            // Is page active?
-            if ($isActive) {
-                $liClasses[] = $activeClass;
-            }
-            // Add CSS class from page to LI?
-            if ($addPageClassToLi) {
-                $liClasses[] = $page->getClass();
-            }
-            // Add CSS class for parents to LI?
-            if ($renderParentClass && $page->hasChildren()) {
-                // Check max depth
-                if ((is_int($maxDepth) && ($depth + 1 < $maxDepth))
-                    || !is_int($maxDepth)
-                ) {
-                    $liClasses[] = $parentClass;
-                }
-            }
+            $liClasses = $this->_collectLiClasses(
+                $isActive,
+                $activeClass,
+                $addPageClassToLi,
+                $page,
+                $renderParentClass,
+                $maxDepth,
+                $depth,
+                $parentClass
+            );
 
             $html .= $myIndent . $innerIndent . '<li'
-                   . $this->_htmlAttribs(array('class' => implode(' ', $liClasses)))
+                   . $this->_htmlAttribs(['class' => implode(' ', $liClasses)])
                    . '>' . $this->getEOL()
                    . $myIndent . str_repeat($innerIndent, 2)
                    . $this->htmlify($page)
